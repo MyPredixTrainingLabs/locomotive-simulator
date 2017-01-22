@@ -1,6 +1,11 @@
 package com.ge.predix.solsvc.training.simulator.service;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -15,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
+import org.yaml.snakeyaml.Yaml;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,8 +38,8 @@ public class LocomotivesimulatorController implements EnvironmentAware {
 	@Value("${timeseriesZone}")
 	String timeseriesZone;
 		
-	@Value("${timeseriesUrl}")
-	String timeseriesUrl;
+	@Value("${ingestionUrl}")
+	String ingestionUrl;
 	
 	@Value("${clientId}")
 	String clientId;
@@ -78,6 +84,7 @@ public class LocomotivesimulatorController implements EnvironmentAware {
 		
 		// the simulator is not supposed to run if the runSimulation flag is set to false and so, return w/o pushing data to TimeSeries
 		if (!runSimulation) {
+			logger.info("ERROR: Have you started your simulator service using POST command yet?");
 			return;
 		}
 		
@@ -106,7 +113,7 @@ public class LocomotivesimulatorController implements EnvironmentAware {
 							
 			RestTemplate restTemplate = new RestTemplate();
 			//Get the data ingestion service URL specified in the config files
-			final String uri = this.timeseriesUrl; //"http://locomotive-dataingestion-service.run.aws-usw02-pr.ice.predix.io/SaveTimeSeriesData";
+			final String uri = this.ingestionUrl; //"http://locomotive-dataingestion-service.run.aws-usw02-pr.ice.predix.io/SaveTimeSeriesData";
 			
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonInString = null;
@@ -117,7 +124,6 @@ public class LocomotivesimulatorController implements EnvironmentAware {
 				e.printStackTrace();
 			}
 			
-			logger.info(" LocomotivesimulatorController :: generateSimulatorData - json result: " + jsonInString);
 			
 			MultiValueMap<String, Object> mvm = new LinkedMultiValueMap<String, Object>();
 		    mvm.add("clientId", this.clientId);
@@ -128,7 +134,7 @@ public class LocomotivesimulatorController implements EnvironmentAware {
 		    //Add client ID, Zone-ID and JSON data
 			String result = restTemplate.postForObject(uri, mvm, String.class);
 			
-			logger.info(" LocomotivesimulatorController :: generateSimulatorData - result: " + result);
+			logger.info(" LocomotivesimulatorController :: generateSimulatorData - json result: " + jsonInString + "***"+ result + "***");
 
 		}
 				
@@ -138,7 +144,7 @@ public class LocomotivesimulatorController implements EnvironmentAware {
 	@Override
 	public void setEnvironment(Environment env) {
 		this.timeseriesZone = env.getProperty("timeseriesZone");
-		this.timeseriesUrl = env.getProperty("timeseriesUrl");		
+		this.ingestionUrl = env.getProperty("ingestionUrl");		
 		this.clientId = env.getProperty("clientId");
 	}
 	
